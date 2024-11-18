@@ -5,8 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import jakarta.validation.ConstraintViolation;
-import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.lab.model.*;
 import org.lab.repository.OrganizationRepository;
 import org.lab.repository.PersonRepository;
@@ -22,7 +23,7 @@ public class WorkerValidator {
     @Inject
     private PersonRepository personRepository;
 
-    public void validate(Worker worker, User author, Validator validator) throws ConstraintViolationException, JsonProcessingException {
+    public void validate(Worker worker, User author, Validator validator) throws WebApplicationException {
         Map<String, List<String>> validationErrors = new HashMap<>();
 
         worker.setAuthor(author);
@@ -155,8 +156,13 @@ public class WorkerValidator {
 
             ObjectMapper mapper = new ObjectMapper();
 
-            String jsonErrors = mapper.writeValueAsString(finalErrors);
-            throw new ConstraintViolationException(jsonErrors, workerViolations);
+            String jsonErrors;
+            try {
+                jsonErrors = mapper.writeValueAsString(finalErrors);
+            } catch (JsonProcessingException e) {
+                throw new WebApplicationException("Failed to process data", Response.Status.BAD_REQUEST);
+            }
+            throw new WebApplicationException(jsonErrors, Response.Status.BAD_REQUEST);
         }
     }
 

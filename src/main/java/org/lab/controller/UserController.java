@@ -1,12 +1,14 @@
 package org.lab.controller;
 
 import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.lab.annotations.Secured;
 import org.lab.model.User;
 import org.lab.service.UserService;
-import org.lab.utils.JwtUtils;
 
 import java.util.List;
 
@@ -17,6 +19,9 @@ public class UserController {
 
     @Inject
     private UserService userService;
+
+    @Context
+    private HttpServletRequest httpServletRequest;
 
     @POST
     @Path("/register")
@@ -29,11 +34,9 @@ public class UserController {
     @Path("/login")
     public Response login(User user) {
         String token = userService.login(user);
-        if (token != null) {
-            return Response.ok(token).build();
-        } else {
+        if (token == null)
             return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials").build();
-        }
+        return Response.ok(token).build();
     }
 
     @POST
@@ -45,35 +48,19 @@ public class UserController {
 
     @GET
     @Path("/me")
-    public Response getCurrentUser(@HeaderParam("Authorization") String token) {
-        if (token != null) {
-
-            String username = JwtUtils.extractUsername(token);
-
-            if (username != null) {
-                User user = userService.getUserByUsername(username);
-
-                if (user != null) {
-                    return Response.ok(user).build();
-                } else {
-                    return Response.status(Response.Status.NOT_FOUND)
-                            .entity("User not found").build();
-                }
-            }
-        }
-        return Response.status(Response.Status.UNAUTHORIZED)
-                .entity("Invalid or missing token").build();
+    @Secured
+    public Response getCurrentUser() {
+        User user = (User) httpServletRequest.getAttribute("currentUser");
+        return Response.ok(user).build();
     }
 
     @GET
     @Path("/{id}")
     public Response getUserById(@PathParam("id") Integer id) {
         User user = userService.getUserById(id);
-        if (user != null) {
-            return Response.ok(user).build();
-        } else {
+        if (user == null)
             return Response.status(Response.Status.NOT_FOUND).build();
-        }
+        return Response.ok(user).build();
     }
 
     @GET
@@ -86,11 +73,10 @@ public class UserController {
     @Path("/{id}")
     public Response updateUser(@PathParam("id") Integer id, User user) {
         User updatedUser = userService.updateUser(id, user);
-        if (updatedUser != null) {
-            return Response.ok(updatedUser).build();
-        } else {
+        if (updatedUser == null)
             return Response.status(Response.Status.NOT_FOUND).build();
-        }
+        return Response.ok(updatedUser).build();
+
     }
 
     @DELETE

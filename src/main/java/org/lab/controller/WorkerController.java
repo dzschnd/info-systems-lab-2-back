@@ -1,14 +1,17 @@
 package org.lab.controller;
 
 import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.lab.annotations.AuthorOrAdmin;
+import org.lab.annotations.Secured;
 import org.lab.model.*;
-import org.lab.service.UserService;
 import org.lab.service.WorkerService;
-import org.lab.utils.JwtUtils;
+import org.lab.utils.ExceptionHandler;
 import org.lab.validation.WorkerValidator;
 
 import java.util.List;
@@ -21,8 +24,9 @@ public class WorkerController {
     @Inject
     private WorkerService workerService;
 
-    @Inject
-    private UserService userService;
+    @Context
+    private HttpServletRequest httpServletRequest;
+
     @Inject
     private Validator validator;
 
@@ -30,23 +34,15 @@ public class WorkerController {
     private WorkerValidator workerValidator;
 
     @POST
-    public Response createWorker(Worker worker, @HeaderParam("Authorization") String token) {
+    @Secured
+    public Response createWorker(Worker worker) {
         try {
-            String username = JwtUtils.extractUsername(token);
-            User author = userService.getUserByUsername(username);
-
-            if (author == null || !JwtUtils.validateToken(token, author)) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("User not authorized").build();
-            }
-
-            workerValidator.validate(worker, author, validator);
-
-            Worker createdWorker = workerService.createWorker(worker, author);
+            User user = (User) httpServletRequest.getAttribute("currentUser");
+            workerValidator.validate(worker, user, validator);
+            Worker createdWorker = workerService.createWorker(worker, user);
             return Response.status(Response.Status.CREATED).entity(createdWorker).build();
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(e.getMessage())
-                    .build();
+            return ExceptionHandler.handle(e);
         }
     }
 
@@ -61,9 +57,7 @@ public class WorkerController {
                 return Response.status(Response.Status.NOT_FOUND).entity("Worker not found").build();
             }
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(e.getMessage())
-                    .build();
+            return ExceptionHandler.handle(e);
         }
     }
 
@@ -73,71 +67,39 @@ public class WorkerController {
             List<Worker> workers = workerService.getAllWorkers();
             return Response.ok(workers).build();
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(e.getMessage())
-                    .build();
+            return ExceptionHandler.handle(e);
         }
     }
 
     @PUT
     @Path("/{id}")
-    public Response updateWorker(@PathParam("id") Integer id, Worker worker, @HeaderParam("Authorization") String token) {
+    @Secured
+    @AuthorOrAdmin
+    public Response updateWorker(@PathParam("id") Integer id, Worker worker) {
         try {
-            String username = JwtUtils.extractUsername(token);
-            User author = userService.getUserByUsername(username);
+            User user = (User) httpServletRequest.getAttribute("currentUser");
 
-            if (author == null || !JwtUtils.validateToken(token, author)) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("User not authorized").build();
-            }
-
-            Worker existingWorker = workerService.getWorkerById(id);
-            if (existingWorker == null) {
-                return Response.status(Response.Status.NOT_FOUND).entity("Worker not found").build();
-            }
-
-            if (!existingWorker.getAuthor().getId().equals(author.getId()) && !author.getRole().equals(Role.ADMIN)) {
-                return Response.status(Response.Status.FORBIDDEN).entity("User not authorized to update this worker").build();
-            }
-
-            workerValidator.validate(worker, author, validator);
+            workerValidator.validate(worker, user, validator);
 
             worker.setId(id);
-            worker.setAuthor(author);
+            worker.setAuthor(user);
             Worker updatedWorker = workerService.updateWorker(worker);
             return Response.ok(updatedWorker).build();
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(e.getMessage())
-                    .build();
+            return ExceptionHandler.handle(e);
         }
     }
 
     @DELETE
     @Path("/{id}")
-    public Response deleteWorker(@PathParam("id") Integer id, @HeaderParam("Authorization") String token) {
+    @Secured
+    @AuthorOrAdmin
+    public Response deleteWorker(@PathParam("id") Integer id) {
         try {
-            String username = JwtUtils.extractUsername(token);
-            User author = userService.getUserByUsername(username);
-
-            if (author == null || !JwtUtils.validateToken(token, author)) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("User not authorized").build();
-            }
-
-            Worker existingWorker = workerService.getWorkerById(id);
-            if (existingWorker == null) {
-                return Response.status(Response.Status.NOT_FOUND).entity("Worker not found").build();
-            }
-
-            if (!existingWorker.getAuthor().getId().equals(author.getId()) && !author.getRole().equals(Role.ADMIN)) {
-                return Response.status(Response.Status.FORBIDDEN).entity("User not authorized to delete this worker").build();
-            }
-
             workerService.deleteWorker(id);
             return Response.noContent().build();
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity(e.getMessage())
-                    .build();
+            return ExceptionHandler.handle(e);
         }
     }
 }

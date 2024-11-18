@@ -14,8 +14,8 @@ public class WorkerRepository extends GenericRepository<Worker, Integer> {
     public Worker findByIdWithRelations(Integer id) {
         String jpql = "SELECT w FROM Worker w " +
                 "LEFT JOIN FETCH w.coordinates " +
-                "LEFT JOIN FETCH w.organization " +  // Removed alias 'o'
-                "LEFT JOIN w.organization.officialAddress " + // Removed alias 'a'
+                "LEFT JOIN FETCH w.organization " +
+                "LEFT JOIN w.organization.officialAddress " +
                 "LEFT JOIN w.organization.officialAddress.town " +
                 "LEFT JOIN FETCH w.person " +
                 "WHERE w.id = :id";
@@ -27,8 +27,8 @@ public class WorkerRepository extends GenericRepository<Worker, Integer> {
     public List<Worker> findAllWithRelations() {
         String jpql = "SELECT w FROM Worker w " +
                 "LEFT JOIN FETCH w.coordinates " +
-                "LEFT JOIN FETCH w.organization " +  // Removed alias
-                "LEFT JOIN w.organization.officialAddress " + // Removed alias
+                "LEFT JOIN FETCH w.organization " +
+                "LEFT JOIN w.organization.officialAddress " +
                 "LEFT JOIN w.organization.officialAddress.town " +
                 "LEFT JOIN FETCH w.person";
         return entityManager.createQuery(jpql, Worker.class).getResultList();
