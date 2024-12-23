@@ -4,33 +4,57 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.lab.model.*;
-import org.lab.repository.OrganizationRepository;
-import org.lab.repository.PersonRepository;
+import org.lab.repository.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Stateless
 public class WorkerValidator {
+    //TODO: print out worker's id in validation
+    @Inject
+    WorkerRepository workerRepository;
+
+    @Inject
+    private CoordinatesRepository coordinatesRepository;
+
     @Inject
     private OrganizationRepository organizationRepository;
 
     @Inject
+    private AddressRepository addressRepository;
+
+    @Inject
+    private LocationRepository locationRepository;
+
+    @Inject
     private PersonRepository personRepository;
 
+    @Transactional
     public void validate(Worker worker, User author, Validator validator) throws WebApplicationException {
         Map<String, List<String>> validationErrors = new HashMap<>();
 
-        worker.setAuthor(author);
+        if (worker.getId() == null) {
+            worker.setAuthor(author);
+        } else {
+            Worker existingWorker = workerRepository.findById(worker.getId());
+            if (existingWorker == null) {
+                validationErrors.computeIfAbsent("Worker", k -> new ArrayList<>())
+                        .add("Worker with id " + worker.getId() + " does not exist");
+            } else {
+                worker.setAuthor(existingWorker.getAuthor());
+            }
+        }
 
         Set<ConstraintViolation<Worker>> workerViolations = validator.validate(worker);
         if (!workerViolations.isEmpty()) {
-            validationErrors.put("Worker", formatViolationsToJson(workerViolations));
+            validationErrors.put("Worker", formatViolationsToJson(workerViolations, worker.getId()));
         }
 
         if (worker.getStatus() != null && !worker.getStatus().isEmpty()) {
@@ -44,34 +68,39 @@ public class WorkerValidator {
         }
 
         if (worker.getCoordinates() != null) {
-            worker.getCoordinates().setAuthor(author);
+            if (worker.getCoordinates().getId() == null) {
+                worker.getCoordinates().setAuthor(author);
+            } else {
+                Coordinates existingCoordinates = coordinatesRepository.findById(worker.getCoordinates().getId());
+                if (existingCoordinates == null) {
+                    validationErrors.computeIfAbsent("Coordinates", k -> new ArrayList<>())
+                            .add("Coordinates with id " + worker.getCoordinates().getId() + " does not exist");
+                } else {
+                    worker.getCoordinates().setAuthor(existingCoordinates.getAuthor());
+                }
+            }
             Set<ConstraintViolation<Coordinates>> coordinatesViolations = validator.validate(worker.getCoordinates());
             if (!coordinatesViolations.isEmpty()) {
-                validationErrors.put("Coordinates", formatViolationsToJson(coordinatesViolations));
+                validationErrors.put("Coordinates", formatViolationsToJson(coordinatesViolations, worker.getId()));
             }
         }
 
         if (worker.getOrganization() != null) {
             Organization organization = worker.getOrganization();
-            organization.setAuthor(author);
+            if (organization.getId() == null) {
+                organization.setAuthor(author);
+            } else {
+                Organization existingOrganization = organizationRepository.findById(organization.getId());
+                if (existingOrganization == null) {
+                    validationErrors.computeIfAbsent("Organization", k -> new ArrayList<>())
+                            .add("Organization with id " + worker.getCoordinates().getId() + " does not exist");
+                } else {
+                    organization.setAuthor(existingOrganization.getAuthor());
+                }
+            }
             Set<ConstraintViolation<Organization>> organizationViolations = validator.validate(organization);
             if (!organizationViolations.isEmpty()) {
-                validationErrors.put("Organization", formatViolationsToJson(organizationViolations));
-            }
-
-            if (worker.getId() == null && organization.getId() == null) {
-                if (organizationRepository.findAll().stream()
-                        .anyMatch(existingOrganization -> existingOrganization.getFullName().equals(organization.getFullName()))) {
-                    validationErrors.computeIfAbsent("Organization", k -> new ArrayList<>())
-                            .add("Organization with full name '" + organization.getFullName() + "' already exists.");
-                }
-            } else if (worker.getId() != null && organization.getId() != null) {
-                if (organizationRepository.findAll().stream()
-                        .filter(existingOrganization -> !existingOrganization.getId().equals(organization.getId()))
-                        .anyMatch(existingOrganization -> existingOrganization.getFullName().equals(organization.getFullName()))) {
-                    validationErrors.computeIfAbsent("Organization", k -> new ArrayList<>())
-                            .add("Organization with full name '" + organization.getFullName() + "' already exists.");
-                }
+                validationErrors.put("Organization", formatViolationsToJson(organizationViolations, worker.getId()));
             }
 
             if (organization.getType() != null) {
@@ -85,17 +114,37 @@ public class WorkerValidator {
             }
 
             if (organization.getOfficialAddress() != null) {
-                organization.getOfficialAddress().setAuthor(author);
+                if (organization.getOfficialAddress().getId() == null) {
+                    organization.getOfficialAddress().setAuthor(author);
+                } else {
+                    Address existingAddress = addressRepository.findById(organization.getOfficialAddress().getId());
+                    if (existingAddress == null) {
+                        validationErrors.computeIfAbsent("Address", k -> new ArrayList<>())
+                                .add("Address with id " + worker.getCoordinates().getId() + " does not exist");
+                    } else {
+                        organization.getOfficialAddress().setAuthor(existingAddress.getAuthor());
+                    }
+                }
                 Set<ConstraintViolation<Address>> addressViolations = validator.validate(organization.getOfficialAddress());
                 if (!addressViolations.isEmpty()) {
-                    validationErrors.put("Address", formatViolationsToJson(addressViolations));
+                    validationErrors.put("Address", formatViolationsToJson(addressViolations, worker.getId()));
                 }
 
                 if (organization.getOfficialAddress().getTown() != null) {
-                    organization.getOfficialAddress().getTown().setAuthor(author);
+                    if (organization.getOfficialAddress().getTown().getId() == null) {
+                        organization.getOfficialAddress().getTown().setAuthor(author);
+                    } else {
+                        Location existingTown = locationRepository.findById(organization.getOfficialAddress().getTown().getId());
+                        if (existingTown == null) {
+                            validationErrors.computeIfAbsent("Town", k -> new ArrayList<>())
+                                    .add("Town with id " + worker.getCoordinates().getId() + " does not exist");
+                        } else {
+                            organization.getOfficialAddress().getTown().setAuthor(existingTown.getAuthor());
+                        }
+                    }
                     Set<ConstraintViolation<Location>> locationViolations = validator.validate(organization.getOfficialAddress().getTown());
                     if (!locationViolations.isEmpty()) {
-                        validationErrors.put("Location", formatViolationsToJson(locationViolations));
+                        validationErrors.put("Location", formatViolationsToJson(locationViolations, worker.getId()));
                     }
                 }
             }
@@ -103,25 +152,20 @@ public class WorkerValidator {
 
         if (worker.getPerson() != null) {
             Person person = worker.getPerson();
-            person.setAuthor(author);
+            if (worker.getPerson().getId() == null) {
+                person.setAuthor(author);
+            } else {
+                Person existingPerson = personRepository.findById(worker.getPerson().getId());
+                if (existingPerson == null) {
+                    validationErrors.computeIfAbsent("Person", k -> new ArrayList<>())
+                            .add("Person with id " + worker.getCoordinates().getId() + " does not exist");
+                } else {
+                    person.setAuthor(existingPerson.getAuthor());
+                }
+            }
             Set<ConstraintViolation<Person>> personViolations = validator.validate(person);
             if (!personViolations.isEmpty()) {
-                validationErrors.put("Person", formatViolationsToJson(personViolations));
-            }
-
-            if (worker.getId() == null && person.getId() == null) {
-                if (personRepository.findAll().stream()
-                        .anyMatch(existingPerson -> existingPerson.getPassportID().equals(person.getPassportID()))) {
-                    validationErrors.computeIfAbsent("Person", k -> new ArrayList<>())
-                            .add("Person with passport ID '" + person.getPassportID() + "' already exists.");
-                }
-            } else if (worker.getId() != null && person.getId() != null) {
-                if (personRepository.findAll().stream()
-                        .filter(existingPerson -> !existingPerson.getId().equals(person.getId()))
-                        .anyMatch(existingPerson -> existingPerson.getPassportID().equals(person.getPassportID()))) {
-                    validationErrors.computeIfAbsent("Person", k -> new ArrayList<>())
-                            .add("Person with passport ID '" + person.getPassportID() + "' already exists.");
-                }
+                validationErrors.put("Person", formatViolationsToJson(personViolations, worker.getId()));
             }
 
             if (person.getEyeColor() != null) {
@@ -142,10 +186,20 @@ public class WorkerValidator {
             }
 
             if (person.getLocation() != null) {
-                person.getLocation().setAuthor(author);
+                if (person.getLocation().getId() == null) {
+                    person.getLocation().setAuthor(author);
+                } else {
+                    Location existingLocation = locationRepository.findById(person.getLocation().getId());
+                    if (existingLocation == null) {
+                        validationErrors.computeIfAbsent("Location", k -> new ArrayList<>())
+                                .add("Location with id " + worker.getCoordinates().getId() + " does not exist");
+                    } else {
+                        person.getLocation().setAuthor(existingLocation.getAuthor());
+                    }
+                }
                 Set<ConstraintViolation<Location>> locationViolations = validator.validate(person.getLocation());
                 if (!locationViolations.isEmpty()) {
-                    validationErrors.put("Location (Person)", formatViolationsToJson(locationViolations));
+                    validationErrors.put("Town", formatViolationsToJson(locationViolations, worker.getId()));
                 }
             }
         }
@@ -172,7 +226,7 @@ public class WorkerValidator {
                 .collect(Collectors.toList());
     }
 
-    private <T> List<String> formatViolationsToJson(Set<ConstraintViolation<T>> violations) {
+    private <T> List<String> formatViolationsToJson(Set<ConstraintViolation<T>> violations, Integer workerId) {
         return violations.stream()
                 .map(violation -> violation.getPropertyPath().toString() + ": " + violation.getMessage())
                 .collect(Collectors.toList());

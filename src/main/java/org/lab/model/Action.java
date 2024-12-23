@@ -29,12 +29,15 @@ public class Action {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Timestamp createdAt;
 
+    @Column(name = "from_file_import", nullable = false)
+    private boolean fromFileImport;  // New field to track the source of action
+
     @PrePersist
     protected void onCreate() {
         createdAt = new Timestamp(System.currentTimeMillis());
     }
 
-
+    // Getters and setters
     public Integer getId() {
         return id;
     }
@@ -73,5 +76,13 @@ public class Action {
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isFromFileImport() {
+        return fromFileImport;
+    }
+
+    public void setFromFileImport(boolean fromFileImport) {
+        this.fromFileImport = fromFileImport;
     }
 }

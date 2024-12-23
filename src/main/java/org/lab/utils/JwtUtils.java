@@ -33,11 +33,10 @@ public class JwtUtils {
     public static boolean validateToken(String token, User user) {
         try {
             assert SECRET_KEY != null;
-            System.out.println(SECRET_KEY);
             Algorithm algorithm = Algorithm.HMAC256(SECRET_KEY);
             JWTVerifier verifier = JWT.require(algorithm).build();
             DecodedJWT jwt = verifier.verify(token);
-            return Integer.valueOf(jwt.getSubject()) == (user.getId());
+            return Integer.valueOf(jwt.getSubject()).equals(user.getId());
         } catch (JWTVerificationException e) {
             return false;
         }

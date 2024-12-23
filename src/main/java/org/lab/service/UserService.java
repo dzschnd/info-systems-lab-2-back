@@ -30,16 +30,10 @@ public class UserService {
         return null;
     }
 
-    public void logout() {
-
-    }
+    public void logout() {}
 
     public User getUserById(Integer id) {
         return userRepository.findById(id);
-    }
-
-    public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username);
     }
 
     public List<User> getAllUsers() {
@@ -47,7 +41,7 @@ public class UserService {
     }
 
     public User updateUser(Integer id, User user) {
-        user.setId(id); // Ensure the ID is set for the update
+        user.setId(id);
         return userRepository.update(user);
     }
 

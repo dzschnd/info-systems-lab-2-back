@@ -1,8 +1,6 @@
 package org.lab.filters;
 
 import jakarta.annotation.Priority;
-import jakarta.inject.Inject;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
@@ -11,8 +9,6 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 import org.lab.annotations.AdminOnly;
-import org.lab.annotations.AuthorOrAdmin;
-import org.lab.annotations.Secured;
 import org.lab.model.Role;
 import org.lab.model.User;
 

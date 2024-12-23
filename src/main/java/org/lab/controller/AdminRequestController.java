@@ -1,5 +1,6 @@
 package org.lab.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.Context;
 import org.lab.annotations.AdminOnly;
@@ -24,15 +25,19 @@ public class AdminRequestController {
     private AdminRequestService adminRequestService;
 
     @Context
-    private ContainerRequestContext requestContext;
+    private HttpServletRequest httpServletRequest;
     
     @POST
     @Path("/request")
     @Secured
     public Response createRequest() {
-        User user = (User) requestContext.getProperty("currentUser");
-        AdminRequest request = adminRequestService.createRequest(user);
-        return Response.status(Response.Status.CREATED).entity(request).build();
+        try {
+            User user = (User) httpServletRequest.getAttribute("currentUser");
+            AdminRequest request = adminRequestService.createRequest(user);
+            return Response.status(Response.Status.CREATED).entity(request).build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 
     @GET
@@ -40,8 +45,12 @@ public class AdminRequestController {
     @Secured
     @AdminOnly
     public Response getPendingRequests() {
-        List<AdminRequest> pendingRequests = adminRequestService.getPendingRequests();
-        return Response.ok(pendingRequests).build();
+        try {
+            List<AdminRequest> pendingRequests = adminRequestService.getPendingRequests();
+            return Response.ok(pendingRequests).build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 
     @POST

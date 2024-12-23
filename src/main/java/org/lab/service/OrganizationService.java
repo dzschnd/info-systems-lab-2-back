@@ -3,7 +3,6 @@ package org.lab.service;
 import jakarta.ejb.Stateless;
 import jakarta.inject.Inject;
 import org.lab.model.Organization;
-import org.lab.model.User;
 import org.lab.repository.OrganizationRepository;
 
 import java.util.List;

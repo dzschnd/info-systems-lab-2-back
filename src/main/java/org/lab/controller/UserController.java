@@ -9,6 +9,7 @@ import jakarta.ws.rs.core.Response;
 import org.lab.annotations.Secured;
 import org.lab.model.User;
 import org.lab.service.UserService;
+import org.lab.utils.ExceptionHandler;
 
 import java.util.List;
 
@@ -33,56 +34,83 @@ public class UserController {
     @POST
     @Path("/login")
     public Response login(User user) {
-        String token = userService.login(user);
-        if (token == null)
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials").build();
-        return Response.ok(token).build();
+        try {
+            String token = userService.login(user);
+            if (token == null)
+                return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid credentials").build();
+            return Response.ok(token).build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 
     @POST
     @Path("/logout")
     public Response logout() {
-        userService.logout();
-        return Response.ok().entity("Logged out successfully").build();
+        try {
+            userService.logout();
+            return Response.ok().entity("Logged out successfully").build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 
     @GET
     @Path("/me")
     @Secured
     public Response getCurrentUser() {
-        User user = (User) httpServletRequest.getAttribute("currentUser");
-        return Response.ok(user).build();
+        try {
+            User user = (User) httpServletRequest.getAttribute("currentUser");
+            return Response.ok(user).build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 
     @GET
     @Path("/{id}")
     public Response getUserById(@PathParam("id") Integer id) {
-        User user = userService.getUserById(id);
-        if (user == null)
-            return Response.status(Response.Status.NOT_FOUND).build();
-        return Response.ok(user).build();
+        try {
+            User user = userService.getUserById(id);
+            if (user == null)
+                return Response.status(Response.Status.NOT_FOUND).build();
+            return Response.ok(user).build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 
     @GET
     public Response getAllUsers() {
-        List<User> users = userService.getAllUsers();
-        return Response.ok(users).build();
+        try {
+            List<User> users = userService.getAllUsers();
+            return Response.ok(users).build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 
     @PUT
     @Path("/{id}")
     public Response updateUser(@PathParam("id") Integer id, User user) {
-        User updatedUser = userService.updateUser(id, user);
-        if (updatedUser == null)
-            return Response.status(Response.Status.NOT_FOUND).build();
-        return Response.ok(updatedUser).build();
-
+        try {
+            User updatedUser = userService.updateUser(id, user);
+            if (updatedUser == null)
+                return Response.status(Response.Status.NOT_FOUND).build();
+            return Response.ok(updatedUser).build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 
     @DELETE
     @Path("/{id}")
     public Response deleteUser(@PathParam("id") Integer id) {
-        userService.deleteUser(id);
-        return Response.noContent().build();
+        try {
+            userService.deleteUser(id);
+            return Response.noContent().build();
+        } catch (Exception e) {
+            return ExceptionHandler.handle(e);
+        }
     }
 }

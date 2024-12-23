@@ -27,7 +27,6 @@ public class CoordinatesController {
             return Response.ok(coordinates).build();
         } catch (Exception e) {
             return ExceptionHandler.handle(e);
-
         }
     }
 }

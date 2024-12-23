@@ -1,17 +1,15 @@
 package org.lab.service;
 
-import jakarta.annotation.Resource;
 import jakarta.ejb.Stateless;
 import jakarta.ejb.TransactionManagement;
 import jakarta.ejb.TransactionManagementType;
 import jakarta.inject.Inject;
-import jakarta.transaction.SystemException;
 import jakarta.transaction.Transactional;
-import jakarta.transaction.UserTransaction;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import org.lab.model.*;
 import org.lab.repository.*;
+import org.lab.utils.DuplicationAvoider;
 
 import java.util.List;
 
@@ -40,14 +38,12 @@ public class WorkerService {
     @Inject
     private ActionRepository actionRepository;
 
-//    @Resource
-//    UserTransaction transaction;
+    @Inject
+    private DuplicationAvoider duplicationAvoider;
 
     @Transactional
-    public Worker createWorker(Worker worker, User author) {
+    public Worker createWorker(Worker worker, User author, boolean fromFileImport) {
         try {
-            worker.setAuthor(author);
-
             if (worker.getCoordinates() != null) {
                 Coordinates coordinates = worker.getCoordinates();
 
@@ -59,13 +55,12 @@ public class WorkerService {
                         throw new IllegalArgumentException("Coordinates with ID " + coordinates.getId() + " not found.");
                     }
                 } else {
-                    coordinates.setAuthor(author);
                     coordinatesRepository.save(coordinates);
                 }
             }
 
             if (worker.getOrganization() != null) {
-                Organization organization = worker.getOrganization();
+                Organization organization = duplicationAvoider.avoidOrganizationFullNameDuplicates(worker.getOrganization());
 
                 if (organization.getId() != null) {
                     Organization existingOrganization = organizationRepository.findById(organization.getId());
@@ -75,16 +70,10 @@ public class WorkerService {
                         throw new IllegalArgumentException("Organization with ID " + organization.getId() + " not found.");
                     }
                 } else {
-                    organization.setAuthor(author);
-
                     if (organization.getOfficialAddress() != null) {
                         Address address = organization.getOfficialAddress();
-                        address.setAuthor(author);
-
                         if (address.getTown() != null) {
                             Location location = address.getTown();
-                            location.setAuthor(author);
-
                             locationRepository.save(location);
                         }
                         addressRepository.save(address);
@@ -95,7 +84,7 @@ public class WorkerService {
             }
 
             if (worker.getPerson() != null) {
-                Person person = worker.getPerson();
+                Person person = duplicationAvoider.avoidPersonPassportDuplicates(worker.getPerson());
 
                 if (person.getId() != null) {
                     Person existingPerson = personRepository.findById(person.getId());
@@ -105,11 +94,8 @@ public class WorkerService {
                         throw new IllegalArgumentException("Person with ID " + person.getId() + " not found.");
                     }
                 } else {
-                    person.setAuthor(author);
-
                     if (person.getLocation() != null) {
                         Location location = person.getLocation();
-                        location.setAuthor(author);
                         locationRepository.save(location);
                     }
 
@@ -122,6 +108,7 @@ public class WorkerService {
             action.setWorker(savedWorker);
             action.setUser(author);
             action.setActionType(ActionType.CREATE);
+            action.setFromFileImport(fromFileImport);
             actionRepository.save(action);
 
             return savedWorker;
@@ -142,7 +129,7 @@ public class WorkerService {
     }
 
     @Transactional
-    public Worker updateWorker(Worker worker) {
+    public Worker updateWorker(Worker worker, boolean fromFileImport) {
         try {
             Worker existingWorker = workerRepository.findById(worker.getId());
             if (existingWorker == null) {
@@ -164,7 +151,7 @@ public class WorkerService {
                     }
                 }
                 if (worker.getOrganization() != null) {
-                    Organization updatedOrganization = worker.getOrganization();
+                    Organization updatedOrganization = duplicationAvoider.avoidOrganizationFullNameDuplicates(worker.getOrganization());
 
                     if (updatedOrganization.getId() != null) {
                         Organization existingOrganization = organizationRepository.findById(updatedOrganization.getId());
@@ -193,10 +180,23 @@ public class WorkerService {
                         organizationRepository.update(updatedOrganization);
                         worker.setOrganization(existingWorker.getOrganization());
                     }
+                } else {
+                    Organization existingOrganization = existingWorker.getOrganization();
+
+                    if (existingOrganization != null) {
+                        Address address = existingOrganization.getOfficialAddress();
+                        Location town = address.getTown();
+
+                        if (town.getId() != null)
+                            locationRepository.delete(town.getId());
+                        if (address.getId() != null)
+                            addressRepository.delete(address.getId());
+                        organizationRepository.delete(existingOrganization.getId());;
+                    }
                 }
 
                 if (worker.getPerson() != null) {
-                    Person updatedPerson = worker.getPerson();
+                    Person updatedPerson = duplicationAvoider.avoidPersonPassportDuplicates(worker.getPerson());
 
                     if (updatedPerson.getId() != null) {
                         Person existingPerson = personRepository.findById(updatedPerson.getId());
@@ -220,13 +220,13 @@ public class WorkerService {
                 }
 
                 User updatingUser = worker.getAuthor();
-                worker.setAuthor(existingWorker.getAuthor());
                 Worker updatedWorker = workerRepository.update(worker);
 
                 Action action = new Action();
                 action.setWorker(updatedWorker);
                 action.setUser(updatingUser);
                 action.setActionType(ActionType.UPDATE);
+                action.setFromFileImport(fromFileImport);
                 actionRepository.save(action);
 
                 return updatedWorker;
@@ -245,13 +245,26 @@ public class WorkerService {
             }
 
             Coordinates existingCoordinates = existingWorker.getCoordinates();
-            long existingCoordinatesCount = workerRepository.countByCoordinatesId(existingCoordinates.getId());
+
+            long existingCoordinatesCount = 0;
+            if (existingCoordinates != null) {
+                existingCoordinatesCount = workerRepository.countByCoordinatesId(existingCoordinates.getId());
+            }
+
 
             Organization existingOrganization = existingWorker.getOrganization();
-            long existingOrganizationCount = workerRepository.countByOrganizationId(existingOrganization.getId());
+
+            long existingOrganizationCount = 0;
+            if (existingOrganization != null) {
+                existingOrganizationCount = workerRepository.countByOrganizationId(existingOrganization.getId());
+            }
 
             Person existingPerson = existingWorker.getPerson();
-            long existingPersonCount = workerRepository.countByPersonId(existingPerson.getId());
+
+            long existingPersonCount = 0;
+            if (existingPerson != null) {
+                existingPersonCount = workerRepository.countByPersonId(existingPerson.getId());
+            }
 
             workerRepository.delete(existingWorker.getId());
 

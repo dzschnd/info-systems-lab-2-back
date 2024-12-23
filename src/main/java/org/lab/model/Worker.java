@@ -9,6 +9,10 @@ import java.time.ZonedDateTime;
 @Entity
 @Table(name = "workers")
 public class Worker {
+    public Worker() {
+        this.creationDate = LocalDateTime.now();
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id; // Поле не может быть null, Значение поля должно быть больше 0, Значение этого поля должно быть уникальным, Значение этого поля должно генерироваться автоматически

@@ -16,6 +16,7 @@ public class AdminRequestRepository extends GenericRepository<AdminRequest, Inte
         TypedQuery<AdminRequest> query = entityManager.createQuery(
                 "SELECT r FROM AdminRequest r WHERE r.status = :status", AdminRequest.class);
         query.setParameter("status", status);
+        System.out.println(query.getResultList());
         return query.getResultList();
     }
 }
