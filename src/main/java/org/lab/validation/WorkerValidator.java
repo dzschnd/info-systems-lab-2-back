@@ -17,7 +17,6 @@ import java.util.stream.Collectors;
 
 @Stateless
 public class WorkerValidator {
-    //TODO: print out worker's id in validation
     @Inject
     WorkerRepository workerRepository;
 
