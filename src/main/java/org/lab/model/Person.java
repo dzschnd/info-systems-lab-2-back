@@ -30,7 +30,7 @@ public class Person {
 
     @Column(nullable = false)
     @Min(1) // Значение поля должно быть больше 0
-    private int height;
+    private Integer height;
 
     @Column(name = "passport_id", unique = true)
     @NotNull // Строка не может быть пустой, Длина строки не должна быть больше 25, Значение этого поля должно быть уникальным, Поле может быть null

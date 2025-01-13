@@ -12,7 +12,7 @@ public class Location {
 
     @Column(nullable = false)
     @NotNull
-    private float x;
+    private Float x;
 
     @Column(nullable = false)
     @NotNull // Поле не может быть null
@@ -40,7 +40,7 @@ public class Location {
         this.id = id;
     }
 
-    public float getX() {
+    public Float getX() {
         return x;
     }
 
