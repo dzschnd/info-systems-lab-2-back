@@ -33,7 +33,6 @@ public class Organization {
     @NotNull
     private User author;
 
-
     public Integer getId() {
         return id;
     }

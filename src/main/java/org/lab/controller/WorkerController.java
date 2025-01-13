@@ -2,12 +2,12 @@ package org.lab.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.minio.MinioClient;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Validator;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
@@ -16,9 +16,10 @@ import org.lab.annotations.Secured;
 import org.lab.model.*;
 import org.lab.service.WorkerService;
 import org.lab.utils.ExceptionHandler;
-import org.lab.utils.JwtUtils;
+import org.lab.utils.MinioUtils;
 import org.lab.validation.WorkerValidator;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -43,10 +44,12 @@ public class WorkerController {
 
     @POST
     @Path("/from-file-import")
+    @Secured
     @Consumes(MediaType.MULTIPART_FORM_DATA)
-    public Response handleWorkersFromFile(MultipartFormDataInput input, @HeaderParam(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+    public Response handleWorkersFromFile(MultipartFormDataInput input) {
         try {
             InputStream fileInputStream = input.getFormDataPart("file", InputStream.class, null);
+            String fileName = input.getFormDataPart("fileName", String.class, null);
 
             if (fileInputStream == null) {
                 return Response.status(Response.Status.BAD_REQUEST)
@@ -54,10 +57,13 @@ public class WorkerController {
                         .build();
             }
 
-            String fileContent = new String(fileInputStream.readAllBytes(), StandardCharsets.UTF_8);
+            byte[] fileBytes = fileInputStream.readAllBytes();
+            String fileContent = new String(fileBytes, StandardCharsets.UTF_8);
+            ByteArrayInputStream fileInputStreamForUpload = new ByteArrayInputStream(fileBytes);
+
+            MinioClient minioClient = MinioUtils.getMinioClient();
 
             List<Worker> workers;
-
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.registerModule(new JavaTimeModule());
             try {
@@ -66,22 +72,22 @@ public class WorkerController {
                 return Response.status(Response.Status.BAD_REQUEST).entity("Invalid JSON format: " + e.getMessage()).build();
             }
 
-            User user = JwtUtils.extractUser(authorizationHeader);
+            User user = (User) httpServletRequest.getAttribute("currentUser");
 
-            for (Worker worker : workers) {
+            for (int i = 0; i < workers.size(); i++) {
+                Worker worker = workers.get(i);
                 workerValidator.validate(worker, user, validator);
-                if (worker.getId() != null) {
-                    workerService.updateWorker(worker, true);
-                } else {
-                    workerService.createWorker(worker, user, true);
-                }
+                workers.set(i, workerValidator.validate(worker, user, validator));
             }
 
-            return Response.ok(workers).build();
+            List<Worker> handledWorkers = workerService.handleImportedWorker(workers, user, minioClient, fileName, fileInputStreamForUpload);
+
+            return Response.ok(handledWorkers).build();
         } catch (Exception e) {
             return ExceptionHandler.handle(e);
         }
     }
+
 
     @POST
     @Secured
@@ -89,7 +95,7 @@ public class WorkerController {
         try {
             User user = (User) httpServletRequest.getAttribute("currentUser");
             workerValidator.validate(worker, user, validator);
-            Worker createdWorker = workerService.createWorker(worker, user, false);
+            Worker createdWorker = workerService.createWorker(worker, user);
             return Response.status(Response.Status.CREATED).entity(createdWorker).build();
         } catch (Exception e) {
             return ExceptionHandler.handle(e);
@@ -130,7 +136,7 @@ public class WorkerController {
             User user = (User) httpServletRequest.getAttribute("currentUser");
             worker.setId(id);
             workerValidator.validate(worker, user, validator);
-            Worker updatedWorker = workerService.updateWorker(worker, false);
+            Worker updatedWorker = workerService.updateWorker(worker, user);
             return Response.ok(updatedWorker).build();
         } catch (Exception e) {
             return ExceptionHandler.handle(e);

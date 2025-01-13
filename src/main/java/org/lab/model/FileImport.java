@@ -6,8 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import java.sql.Timestamp;
 
 @Entity
-@Table(name = "actions")
-public class Action {
+@Table(name = "file_imports")
+public class FileImport {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
@@ -17,29 +17,17 @@ public class Action {
     @NotNull
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name = "worker_id", nullable = false)
-    @NotNull
-    private Worker worker;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false)
-    private ActionType actionType;
+    @Column(name = "file_name")
+    private String fileName;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Timestamp createdAt;
-
-    @ManyToOne
-    @JoinColumn(name = "file_import_id")
-    @NotNull
-    private FileImport fileImport;
 
     @PrePersist
     protected void onCreate() {
         createdAt = new Timestamp(System.currentTimeMillis());
     }
 
-    // Getters and setters
     public Integer getId() {
         return id;
     }
@@ -56,22 +44,6 @@ public class Action {
         this.user = user;
     }
 
-    public Worker getWorker() {
-        return worker;
-    }
-
-    public void setWorker(Worker worker) {
-        this.worker = worker;
-    }
-
-    public ActionType getActionType() {
-        return actionType;
-    }
-
-    public void setActionType(ActionType actionType) {
-        this.actionType = actionType;
-    }
-
     public Timestamp getCreatedAt() {
         return createdAt;
     }
@@ -80,11 +52,11 @@ public class Action {
         this.createdAt = createdAt;
     }
 
-    public FileImport getFileImport() {
-        return fileImport;
+    public String getFileName() {
+        return fileName;
     }
 
-    public void setFileImport(FileImport fileImport) {
-        this.fileImport = fileImport;
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
 }

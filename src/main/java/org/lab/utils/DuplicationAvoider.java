@@ -19,7 +19,7 @@ public class DuplicationAvoider {
     private PersonRepository personRepository;
 
     public Organization avoidOrganizationFullNameDuplicates(Organization organization) {
-        Set<String> existingFullNames = organizationRepository.findAll().stream()
+        Set<String> existingFullNames = organizationRepository.findAllWithLock().stream()
                     .filter(existingOrganization -> organization.getId() == null || !existingOrganization.getId().equals(organization.getId()))
                     .map(Organization::getFullName)
                     .collect(Collectors.toSet());

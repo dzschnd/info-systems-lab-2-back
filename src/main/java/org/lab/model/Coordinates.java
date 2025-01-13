@@ -12,16 +12,15 @@ public class Coordinates {
 
     @Column(nullable = false)
     @Max(value = 863) // Максимальное значение поля: 863
-    private int x;
+    private Integer x;
 
     @Column(nullable = false)
-    private long y;
+    private Long y;
 
     @ManyToOne
     @JoinColumn(name = "author_id", nullable = false)
     @NotNull
     private User author;
-
 
     public Integer getId() {
         return id;
@@ -31,19 +30,19 @@ public class Coordinates {
         this.id = id;
     }
 
-    public int getX() {
+    public Integer getX() {
         return x;
     }
 
-    public void setX(int x) {
+    public void setX(Integer x) {
         this.x = x;
     }
 
-    public long getY() {
+    public Long getY() {
         return y;
     }
 
-    public void setY(long y) {
+    public void setY(Long y) {
         this.y = y;
     }
 

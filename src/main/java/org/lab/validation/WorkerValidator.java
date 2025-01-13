@@ -36,7 +36,7 @@ public class WorkerValidator {
     private PersonRepository personRepository;
 
     @Transactional
-    public void validate(Worker worker, User author, Validator validator) throws WebApplicationException {
+    public Worker validate(Worker worker, User author, Validator validator) throws WebApplicationException {
         Map<String, List<String>> validationErrors = new HashMap<>();
 
         if (worker.getId() == null) {
@@ -53,7 +53,7 @@ public class WorkerValidator {
 
         Set<ConstraintViolation<Worker>> workerViolations = validator.validate(worker);
         if (!workerViolations.isEmpty()) {
-            validationErrors.put("Worker", formatViolationsToJson(workerViolations, worker.getId()));
+            validationErrors.put("Worker", formatViolationsToJson(workerViolations));
         }
 
         if (worker.getStatus() != null && !worker.getStatus().isEmpty()) {
@@ -80,7 +80,7 @@ public class WorkerValidator {
             }
             Set<ConstraintViolation<Coordinates>> coordinatesViolations = validator.validate(worker.getCoordinates());
             if (!coordinatesViolations.isEmpty()) {
-                validationErrors.put("Coordinates", formatViolationsToJson(coordinatesViolations, worker.getId()));
+                validationErrors.put("Coordinates", formatViolationsToJson(coordinatesViolations));
             }
         }
 
@@ -99,7 +99,7 @@ public class WorkerValidator {
             }
             Set<ConstraintViolation<Organization>> organizationViolations = validator.validate(organization);
             if (!organizationViolations.isEmpty()) {
-                validationErrors.put("Organization", formatViolationsToJson(organizationViolations, worker.getId()));
+                validationErrors.put("Organization", formatViolationsToJson(organizationViolations));
             }
 
             if (organization.getType() != null) {
@@ -126,7 +126,7 @@ public class WorkerValidator {
                 }
                 Set<ConstraintViolation<Address>> addressViolations = validator.validate(organization.getOfficialAddress());
                 if (!addressViolations.isEmpty()) {
-                    validationErrors.put("Address", formatViolationsToJson(addressViolations, worker.getId()));
+                    validationErrors.put("Address", formatViolationsToJson(addressViolations));
                 }
 
                 if (organization.getOfficialAddress().getTown() != null) {
@@ -143,7 +143,7 @@ public class WorkerValidator {
                     }
                     Set<ConstraintViolation<Location>> locationViolations = validator.validate(organization.getOfficialAddress().getTown());
                     if (!locationViolations.isEmpty()) {
-                        validationErrors.put("Location", formatViolationsToJson(locationViolations, worker.getId()));
+                        validationErrors.put("Location", formatViolationsToJson(locationViolations));
                     }
                 }
             }
@@ -164,7 +164,7 @@ public class WorkerValidator {
             }
             Set<ConstraintViolation<Person>> personViolations = validator.validate(person);
             if (!personViolations.isEmpty()) {
-                validationErrors.put("Person", formatViolationsToJson(personViolations, worker.getId()));
+                validationErrors.put("Person", formatViolationsToJson(personViolations));
             }
 
             if (person.getEyeColor() != null) {
@@ -198,7 +198,7 @@ public class WorkerValidator {
                 }
                 Set<ConstraintViolation<Location>> locationViolations = validator.validate(person.getLocation());
                 if (!locationViolations.isEmpty()) {
-                    validationErrors.put("Town", formatViolationsToJson(locationViolations, worker.getId()));
+                    validationErrors.put("Town", formatViolationsToJson(locationViolations));
                 }
             }
         }
@@ -217,6 +217,8 @@ public class WorkerValidator {
             }
             throw new WebApplicationException(jsonErrors, Response.Status.BAD_REQUEST);
         }
+
+        return worker;
     }
 
     private List<String> getEnumValues(Class<? extends Enum<?>> enumClass) {
@@ -225,7 +227,7 @@ public class WorkerValidator {
                 .collect(Collectors.toList());
     }
 
-    private <T> List<String> formatViolationsToJson(Set<ConstraintViolation<T>> violations, Integer workerId) {
+    private <T> List<String> formatViolationsToJson(Set<ConstraintViolation<T>> violations) {
         return violations.stream()
                 .map(violation -> violation.getPropertyPath().toString() + ": " + violation.getMessage())
                 .collect(Collectors.toList());

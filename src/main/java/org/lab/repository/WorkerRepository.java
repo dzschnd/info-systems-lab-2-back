@@ -1,6 +1,8 @@
 package org.lab.repository;
 
 import jakarta.ejb.Stateless;
+import jakarta.persistence.LockModeType;
+import org.lab.model.Coordinates;
 import org.lab.model.Worker;
 import jakarta.persistence.TypedQuery;
 import java.util.List;
@@ -52,6 +54,13 @@ public class WorkerRepository extends GenericRepository<Worker, Integer> {
         return entityManager.createQuery(
                 "SELECT COUNT(w) FROM Worker w WHERE w.person.id = :personId", Long.class)
                 .setParameter("personId", personId)
+                .getSingleResult();
+    }
+
+    public Worker findByIdWithLock(Integer id) {
+        return entityManager.createQuery("SELECT c FROM Worker c WHERE c.id = :id", Worker.class)
+                .setParameter("id", id)
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getSingleResult();
     }
 }
