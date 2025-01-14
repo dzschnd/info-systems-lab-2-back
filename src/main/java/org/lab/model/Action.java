@@ -29,10 +29,9 @@ public class Action {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Timestamp createdAt;
 
-    @ManyToOne
-    @JoinColumn(name = "file_import_id")
+    @Column(name = "from_file_import")
     @NotNull
-    private FileImport fileImport;
+    private boolean fromFileImport;
 
     @PrePersist
     protected void onCreate() {
@@ -80,11 +79,11 @@ public class Action {
         this.createdAt = createdAt;
     }
 
-    public FileImport getFileImport() {
-        return fileImport;
+    public boolean getFromFileImport() {
+        return fromFileImport;
     }
 
-    public void setFileImport(FileImport fileImport) {
-        this.fileImport = fileImport;
+    public void setFromFileImport(boolean fromFileImport) {
+        this.fromFileImport = fromFileImport;
     }
 }

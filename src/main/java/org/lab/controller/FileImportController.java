@@ -8,11 +8,9 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.lab.annotations.Secured;
-import org.lab.model.FileImport;
 import org.lab.model.User;
 import org.lab.service.FileImportService;
 import org.lab.utils.ExceptionHandler;
-import org.lab.utils.MinioUtils;
 
 import java.io.InputStream;
 import java.util.List;
